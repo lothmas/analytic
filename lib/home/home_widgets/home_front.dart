@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_devfest/agenda/agenda_page.dart';
 import 'package:flutter_devfest/config/index.dart';
 import 'package:flutter_devfest/faq/faq_page.dart';
+import 'package:flutter_devfest/login/LoginPage.dart';
 import 'package:flutter_devfest/map/map_page.dart';
 import 'package:flutter_devfest/speakers/speaker_page.dart';
 import 'package:flutter_devfest/sponsors/sponsor_page.dart';
@@ -14,14 +15,16 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_facebook_login/flutter_facebook_login.dart';
+import 'package:flutter_twitter_login/flutter_twitter_login.dart';
 
 class HomeFront extends StatelessWidget {
-
-
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseAuth _auth = FirebaseAuth.instance;
-
-
+  var twitterLogin = new TwitterLogin(
+    consumerKey: 'k8n2hJMd1rYj8Xt0Sq1JdgMZa',
+    consumerSecret: '5kHYsJ6XoHmpG37kA4pg1HY0xGHnpaeX6NjqvL1Rt3TV46uTW3',
+  );
 
   List<Widget> devFestTexts(context) => [
         Text(
@@ -104,7 +107,28 @@ class HomeFront extends StatelessWidget {
           SignInButton(
             Buttons.Facebook,
             mini: false,
-            onPressed: () {},
+            onPressed: () async {
+              final facebookLogin = FacebookLogin();
+              final result =
+                  await facebookLogin.logInWithReadPermissions(['email']);
+
+              switch (result.status) {
+                case FacebookLoginStatus.loggedIn:
+                  final AuthCredential credential =
+                      FacebookAuthProvider.getCredential(
+                          accessToken: result.accessToken.token);
+                  final FirebaseUser user =
+                      (await _auth.signInWithCredential(credential)).user;
+                  print("facebook loggedin:: " + result.accessToken.userId);
+                  break;
+                case FacebookLoginStatus.cancelledByUser:
+//                  _showCancelledMessage();
+                  break;
+                case FacebookLoginStatus.error:
+//                  _showErrorOnUI(result.errorMessage);
+                  break;
+              }
+            },
           ),
           SignInButton(Buttons.Google, mini: false, onPressed: () {
             _handleSignIn();
@@ -112,12 +136,22 @@ class HomeFront extends StatelessWidget {
           SignInButton(
             Buttons.Twitter,
             mini: false,
-            onPressed: () {},
+            onPressed: ()  {
+              _signInWithTwitter();
+            },
           ),
           SignInButton(
             Buttons.Email,
             mini: false,
-            onPressed: () {},
+            onPressed: ()
+            {
+              Navigator.pushReplacement(
+                context,
+                new MaterialPageRoute(
+                    builder: (context) => new LoginPage()),
+              );
+
+            },
           )
         ],
       );
@@ -171,18 +205,36 @@ class HomeFront extends StatelessWidget {
 
   Future<FirebaseUser> _handleSignIn() async {
     final GoogleSignInAccount googleUser = await _googleSignIn.signIn();
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    final GoogleSignInAuthentication googleAuth =
+        await googleUser.authentication;
 
     final AuthCredential credential = GoogleAuthProvider.getCredential(
       accessToken: googleAuth.accessToken,
       idToken: googleAuth.idToken,
     );
 
-    final FirebaseUser user = (await _auth.signInWithCredential(credential)).user;
+    final FirebaseUser user =
+        (await _auth.signInWithCredential(credential)).user;
     print("signed in " + user.displayName);
     return user;
   }
 
+  String _userEmail;
+  final TextEditingController _emailController = TextEditingController();
+
+  Future<void> _signInWithEmailAndLink() async {
+    _userEmail = _emailController.text;
+
+    return await _auth.sendSignInWithEmailLink(
+      email: _userEmail,
+      url: '<Url with domain from your Firebase project>',
+      handleCodeInApp: true,
+      iOSBundleID: 'io.flutter.plugins.firebaseAuthExample',
+      androidPackageName: 'io.flutter.plugins.firebaseauthexample',
+      androidInstallIfNotAvailable: true,
+      androidMinimumVersion: "1",
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -205,12 +257,10 @@ class HomeFront extends StatelessWidget {
               height: 20,
             ),
             newActions(context),
-            SizedBox(
-              height: 20,
-            ),
+
 //            socialActions(context),
             SizedBox(
-              height: 20,
+              height: 10,
             ),
             Text(
               Devfest.app_version,
@@ -221,7 +271,35 @@ class HomeFront extends StatelessWidget {
       ),
     );
   }
+
+  void _signInWithTwitter() async {
+
+
+    final TwitterLoginResult result = await twitterLogin.authorize();
+
+    switch (result.status) {
+      case TwitterLoginStatus.loggedIn:
+        final AuthCredential credential = TwitterAuthProvider.getCredential(
+            authToken: result.session.token,
+            authTokenSecret: result.session.secret);
+        final FirebaseUser user =
+            (await _auth.signInWithCredential(credential)).user;
+        break;
+      case TwitterLoginStatus.cancelledByUser:
+        break;
+      case TwitterLoginStatus.error:
+        break;
+    }
+
+
+
+  }
+
+
 }
+
+
+
 
 class ActionCard extends StatelessWidget {
   final Function onPressed;
