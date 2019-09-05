@@ -9,7 +9,7 @@ import './card.dart' show DeveloperCard;
 
 import './developers/luke_pighetti/page.dart';
 import './developers/groovin_chip/groovin_chip.dart';
-import 'developers/luke_pighetti/book_reader/screens/home/index.dart';
+import 'home_front.dart';
 
 void main() => runApp(MyApp());
 
@@ -24,7 +24,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       debugShowCheckedModeBanner: false,
-      home: HomePage(),
+      home: MyHomePage(),
     );
   }
 }
@@ -56,12 +56,7 @@ class _MyHomePageState extends State<MyHomePage> {
           )
         ],
       ),
-      body: Center(
-        child: GridView.count(
-          crossAxisCount: isLandscape ? 3 : 2,
-          children: developerCards,
-        ),
-      ),
+      body: HomeFront(),
     );
   }
 }
